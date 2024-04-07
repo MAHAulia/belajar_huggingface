@@ -51,6 +51,7 @@ name = "candle"
 version = "0.1.0"
 dependencies = [
  "candle-core",
+ "candle-nn",
 ]
 
 [[package]]
@@ -71,6 +72,20 @@ dependencies = [
  "thiserror",
  "yoke",
  "zip",
+]
+
+[[package]]
+name = "candle-nn"
+version = "0.5.0"
+source = "git+https://github.com/huggingface/candle.git#33c9b6655459bd1086574cef9ba8f2e72a8804c8"
+dependencies = [
+ "candle-core",
+ "half",
+ "num-traits",
+ "rayon",
+ "safetensors",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
