@@ -17,12 +17,14 @@ use candle_transformers::generation::LogitsProcessor;
 use hf_hub::{api::sync::Api, Repo, RepoType};
 use tokenizers::Tokenizer;
 
+// Create enum with name model, that consist of MixFormer, Phi, and Quantized
 enum Model {
     MixFormer(MixFormer),
     Phi(Phi),
     Quantized(QMixFormer),
 }
 
+// Crete struct with name text generation to hold  data
 struct TextGeneration {
     model: Model,
     device: Device,
@@ -33,7 +35,9 @@ struct TextGeneration {
     verbose_prompt: bool,
 }
 
+// create implementation of textgeneration struct
 impl TextGeneration {
+    // create funciton new, to set base data
     #[allow(clippy::too_many_arguments)]
     fn new(
         model: Model,
@@ -58,6 +62,7 @@ impl TextGeneration {
         }
     }
 
+    
     fn run(&mut self, prompt: &str, sample_len: usize) -> Result<()> {
         use std::io::Write;
         println!("starting the inference loop");
