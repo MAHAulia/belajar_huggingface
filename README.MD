@@ -19,6 +19,9 @@ cargo run --release -- --model 2  --prompt "A skier slides down a frictionless s
 ```
 <img src="docs/phi.png" alt="phi result command" width="80%">
 
+### Documentation
+[Phi - Documentation](Phi-Doc.md)
+
 ### rwkv
 
 source -> [rwkv](https://github.com/mymyid/rwkv)
@@ -28,6 +31,9 @@ cargo run -- --prompt "the smallest prime is"
 ```
 <img src="docs/rwkv.png" alt="rwkv result command" width="80%">
 
+### Documentation
+[Rwkv - Documentation](Rwkv-Doc.md)
+
 ### mistral
 
 source -> [mistral](https://github.com/mymyid/mistral)
@@ -36,3 +42,6 @@ source -> [mistral](https://github.com/mymyid/mistral)
 RUST_BACKTRACE=1 cargo run --features cuda -- --prompt "Here is a sample quick sort implementation in rust " -n 400
 ```
 <img src="docs/mistral.png" alt="mistral result command" width="80%">
+
+### Documentation
+[Mistral - Documentation](Mistral-Doc.md)
