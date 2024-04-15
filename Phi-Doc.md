@@ -1,4 +1,4 @@
-# Penjelasan Kode
+# Penjelasan Kode - Phi
 by. [Moh. Abdul Haq Aulia ](https://github.com/MAHAulia/)
 
 ini merupakan penjelasan singkat implementasi kode dari kode sumber -> [phi](https://github.com/mymyid/phi)
@@ -304,3 +304,71 @@ dalam aplikasi ini terdapat beberapa enum diantaranya
               }
           }
         ```
+
+2. Struct Args
+    Struct ini digunakan untuk melakan parsing data inputan argument pada cli
+    ``` struct Args
+        #[derive(Parser, Debug)]
+    #[command(author, version, about, long_about = None)]
+    struct Args {
+        /// Run on CPU rather than on GPU.
+        #[arg(long)]
+        cpu: bool,
+
+        /// Enable tracing (generates a trace-timestamp.json file).
+        #[arg(long)]
+        tracing: bool,
+
+        /// Display the token for the specified prompt.
+        #[arg(long)]
+        verbose_prompt: bool,
+
+        #[arg(long)]
+        prompt: Option<String>,
+
+        #[arg(long)]
+        mmlu_dir: Option<String>,
+
+        /// The temperature used to generate samples.
+        #[arg(long)]
+        temperature: Option<f64>,
+
+        /// Nucleus sampling probability cutoff.
+        #[arg(long)]
+        top_p: Option<f64>,
+
+        /// The seed to use when generating random samples.
+        #[arg(long, default_value_t = 299792458)]
+        seed: u64,
+
+        /// The length of the sample to generate (in tokens).
+        #[arg(long, short = 'n', default_value_t = 5000)]
+        sample_len: usize,
+
+        #[arg(long)]
+        model_id: Option<String>,
+
+        #[arg(long, default_value = "2")]
+        model: WhichModel,
+
+        #[arg(long)]
+        revision: Option<String>,
+
+        #[arg(long)]
+        weight_file: Option<String>,
+
+        #[arg(long)]
+        tokenizer: Option<String>,
+
+        #[arg(long)]
+        quantized: bool,
+
+        /// Penalty to be applied for repeating tokens, 1. means no penalty.
+        #[arg(long, default_value_t = 1.1)]
+        repeat_penalty: f32,
+
+        /// The context size to consider for the repeat penalty.
+        #[arg(long, default_value_t = 64)]
+        repeat_last_n: usize,
+    }
+    ```
