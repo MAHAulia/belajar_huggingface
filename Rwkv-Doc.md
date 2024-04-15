@@ -188,93 +188,82 @@ dalam aplikasi ini terdapat beberapa enum dan implementasinya diantaranya
 
         imp TextGenerationini merupakan impelemntasi dari struct TextGeneration, dimana di dalamnya ada fungsi fungsi yang ada hubunganya dengan pipeline text
         ```imp TextGeneration 
-          mpl TextGeneration {
-              #[allow(clippy::too_many_arguments)]
-              fn new(
-                  model: Model,
-                  tokenizer: Tokenizer,
-                  seed: u64,
-                  temp: Option<f64>,
-                  top_p: Option<f64>,
-                  repeat_penalty: f32,
-                  repeat_last_n: usize,
-                  verbose_prompt: bool,
-                  device: &Device,
-              ) -> Self {
-                  let logits_processor = LogitsProcessor::new(seed, temp, top_p);
-                  Self {
-                      model,
-                      tokenizer,
-                      logits_processor,
-                      repeat_penalty,
-                      repeat_last_n,
-                      verbose_prompt,
-                      device: device.clone(),
-                  }
-              }
+            impl TextGeneration {
+                #[allow(clippy::too_many_arguments)]
+                fn new(
+                    model: Model,
+                    config: Config,
+                    tokenizer: Tokenizer,
+                    seed: u64,
+                    temp: Option<f64>,
+                    top_p: Option<f64>,
+                    repeat_penalty: f32,
+                    repeat_last_n: usize,
+                    device: &Device,
+                ) -> Self {
+                    let logits_processor = LogitsProcessor::new(seed, temp, top_p);
+                    Self {
+                        model,
+                        config,
+                        tokenizer,
+                        logits_processor,
+                        repeat_penalty,
+                        repeat_last_n,
+                        device: device.clone(),
+                    }
+                }
 
-              
-              fn run(&mut self, prompt: &str, sample_len: usize) -> Result<()> {
-                  use std::io::Write;
-                  println!("starting the inference loop");
-                  let tokens = self.tokenizer.encode(prompt, true).map_err(E::msg)?;
-                  if tokens.is_empty() {
-                      anyhow::bail!("Empty prompts are not supported in the phi model.")
-                  }
-                  if self.verbose_prompt {
-                      for (token, id) in tokens.get_tokens().iter().zip(tokens.get_ids().iter()) {
-                          let token = token.replace('▁', " ").replace("<0x0A>", "\n");
-                          println!("{id:7} -> '{token}'");
-                      }
-                  }
-                  let mut tokens = tokens.get_ids().to_vec();
-                  let mut generated_tokens = 0usize;
-                  let eos_token = match self.tokenizer.get_vocab(true).get("<|endoftext|>") {
-                      Some(token) => *token,
-                      None => anyhow::bail!("cannot find the endoftext token"),
-                  };
-                  print!("{prompt}");
-                  std::io::stdout().flush()?;
-                  let start_gen = std::time::Instant::now();
-                  for index in 0..sample_len {
-                      let context_size = if index > 0 { 1 } else { tokens.len() };
-                      let ctxt = &tokens[tokens.len().saturating_sub(context_size)..];
-                      let input = Tensor::new(ctxt, &self.device)?.unsqueeze(0)?;
-                      let logits = match &mut self.model {
-                          Model::MixFormer(m) => m.forward(&input)?,
-                          Model::Phi(m) => m.forward(&input)?,
-                          Model::Quantized(m) => m.forward(&input)?,
-                      };
-                      let logits = logits.squeeze(0)?.to_dtype(DType::F32)?;
-                      let logits = if self.repeat_penalty == 1. {
-                          logits
-                      } else {
-                          let start_at = tokens.len().saturating_sub(self.repeat_last_n);
-                          candle_transformers::utils::apply_repeat_penalty(
-                              &logits,
-                              self.repeat_penalty,
-                              &tokens[start_at..],
-                          )?
-                      };
+                fn run(&mut self, prompt: &str, sample_len: usize) -> Result<()> {
+                    use std::io::Write;
+                    let mut tokens = self.tokenizer.encode(prompt)?;
+                    let mut generated_tokens = 0usize;
+                    let mut state = State::new(1, &self.config, &self.device)?;
+                    let mut next_logits = None;
+                    for &t in tokens.iter() {
+                        let input = Tensor::new(&[[t]], &self.device)?;
+                        let logits = self.model.forward(&input, &mut state)?;
+                        next_logits = Some(logits);
+                        print!("{}", self.tokenizer.decode(&[t])?)
+                    }
+                    std::io::stdout().flush()?;
 
-                      let next_token = self.logits_processor.sample(&logits)?;
-                      tokens.push(next_token);
-                      generated_tokens += 1;
-                      if next_token == eos_token {
-                          break;
-                      }
-                      let token = self.tokenizer.decode(&[next_token], true).map_err(E::msg)?;
-                      print!("{token}");
-                      std::io::stdout().flush()?;
-                  }
-                  let dt = start_gen.elapsed();
-                  println!(
-                      "\n{generated_tokens} tokens generated ({:.2} token/s)",
-                      generated_tokens as f64 / dt.as_secs_f64(),
-                  );
-                  Ok(())
-              }
-          }
+                    let start_gen = std::time::Instant::now();
+                    for _ in 0..sample_len {
+                        let logits = match next_logits.as_ref() {
+                            Some(logits) => logits,
+                            None => anyhow::bail!("cannot work on an empty prompt"),
+                        };
+                        let logits = logits.squeeze(0)?.squeeze(0)?.to_dtype(DType::F32)?;
+                        let logits = if self.repeat_penalty == 1. {
+                            logits
+                        } else {
+                            let start_at = tokens.len().saturating_sub(self.repeat_last_n);
+                            candle_transformers::utils::apply_repeat_penalty(
+                                &logits,
+                                self.repeat_penalty,
+                                &tokens[start_at..],
+                            )?
+                        };
+                        let next_token = self.logits_processor.sample(&logits)?;
+                        tokens.push(next_token);
+                        generated_tokens += 1;
+                        if next_token == EOS_TOKEN_ID || next_token == 0 {
+                            break;
+                        }
+                        print!("{}", self.tokenizer.decode(&[next_token])?);
+                        std::io::stdout().flush()?;
+
+                        let input = Tensor::new(&[[next_token]], &self.device)?;
+                        next_logits = Some(self.model.forward(&input, &mut state)?)
+                    }
+                    let dt = start_gen.elapsed();
+                    println!(
+                        "\n{generated_tokens} tokens generated ({:.2} token/s)",
+                        generated_tokens as f64 / dt.as_secs_f64(),
+                    );
+                    Ok(())
+                }
+            }
         ````
 2. Struct Args
     Struct ini digunakan untuk melakan parsing data inputan argument pada cli

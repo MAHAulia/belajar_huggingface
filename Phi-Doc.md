@@ -216,7 +216,7 @@ dalam aplikasi ini terdapat beberapa enum diantaranya
 
         imp TextGenerationini merupakan impelemntasi dari struct TextGeneration, dimana di dalamnya ada fungsi fungsi yang ada hubunganya dengan pipeline text
         ```imp TextGeneration 
-          mpl TextGeneration {
+        impl TextGeneration {
               #[allow(clippy::too_many_arguments)]
               fn new(
                   model: Model,
