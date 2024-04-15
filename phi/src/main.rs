@@ -125,6 +125,7 @@ impl TextGeneration {
     }
 }
 
+// Create Model enum
 #[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
 enum WhichModel {
     #[value(name = "1")]
@@ -139,6 +140,7 @@ enum WhichModel {
     PhiHermes,
 }
 
+// Create argument struct
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -207,7 +209,10 @@ fn main() -> Result<()> {
     use tracing_chrome::ChromeLayerBuilder;
     use tracing_subscriber::prelude::*;
 
+    // Read input argumen from CLI
     let args = Args::parse();
+
+    // read argumen tracing to determine crome layer option
     let _guard = if args.tracing {
         let (chrome_layer, guard) = ChromeLayerBuilder::new().build();
         tracing_subscriber::registry().with(chrome_layer).init();
@@ -215,6 +220,8 @@ fn main() -> Result<()> {
     } else {
         None
     };
+    
+    // Print properti form cancle core
     println!(
         "avx: {}, neon: {}, simd128: {}, f16c: {}",
         candle_core::utils::with_avx(),
@@ -222,6 +229,8 @@ fn main() -> Result<()> {
         candle_core::utils::with_simd128(),
         candle_core::utils::with_f16c()
     );
+
+    // print arguments temperature, repeat penalti and repeat last
     println!(
         "temp: {:.2} repeat-penalty: {:.2} repeat-last-n: {}",
         args.temperature.unwrap_or(0.),
@@ -229,8 +238,12 @@ fn main() -> Result<()> {
         args.repeat_last_n
     );
 
+    // run timer
     let start = std::time::Instant::now();
+
+    // init hunggingface hub api
     let api = Api::new()?;
+    // use pattern matching to set "model_id" from input argument cli
     let model_id = match args.model_id {
         Some(model_id) => model_id.to_string(),
         None => {
@@ -248,6 +261,8 @@ fn main() -> Result<()> {
             }
         }
     };
+
+    // use pattern matcing to set revision from input cli agrument
     let revision = match args.revision {
         Some(rev) => rev.to_string(),
         None => {
@@ -265,7 +280,11 @@ fn main() -> Result<()> {
             }
         }
     };
+
+    // set repo from candle hub with model id and revision
     let repo = api.repo(Repo::with_revision(model_id, RepoType::Model, revision));
+
+    // use pattern matching to set tokenizer_filename from arguments
     let tokenizer_filename = match args.tokenizer {
         Some(file) => std::path::PathBuf::from(file),
         None => match args.model {
@@ -277,6 +296,8 @@ fn main() -> Result<()> {
             }
         },
     };
+
+    // use pattern matching to set filenamses from argument wight_file
     let filenames = match args.weight_file {
         Some(weight_file) => vec![std::path::PathBuf::from(weight_file)],
         None => {
@@ -301,10 +322,16 @@ fn main() -> Result<()> {
             }
         }
     };
+
+    // Print elapsed time to get file
     println!("retrieved the files in {:?}", start.elapsed());
+
+    // Create tokenizer form tokenizer_filename
     let tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
 
     let start = std::time::Instant::now();
+
+    // use pattern matching to get config from specified model
     let config = || match args.model {
         WhichModel::V1 => Config::v1(),
         WhichModel::V1_5 => Config::v1_5(),
@@ -312,7 +339,11 @@ fn main() -> Result<()> {
         WhichModel::PuffinPhiV2 => Config::puffin_phi_v2(),
         WhichModel::PhiHermes => Config::phi_hermes_1_3b(),
     };
+
+    // define device type for processing this task
     let device = candle_examples::device(args.cpu)?;
+
+    // use pattern matcing to set model from argument quantized
     let model = if args.quantized {
         let config = config();
         let vb = candle_transformers::quantized_var_builder::VarBuilder::from_gguf(
@@ -346,6 +377,7 @@ fn main() -> Result<()> {
     };
     println!("loaded the model in {:?}", start.elapsed());
 
+    // Run aplication using TextGeneration pipeline from arguments or run mmlu
     match (args.prompt, args.mmlu_dir) {
         (None, None) | (Some(_), Some(_)) => {
             anyhow::bail!("exactly one of --prompt and --mmlu-dir must be specified")
@@ -369,12 +401,14 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+// this function implement multiple choice question answer
 fn mmlu<P: AsRef<std::path::Path>>(
     mut model: Model,
     tokenizer: Tokenizer,
     device: &Device,
     mmlu_dir: P,
 ) -> anyhow::Result<()> {
+    // do looping from mmlu_dir to get directory entry point and read data
     for dir_entry in mmlu_dir.as_ref().read_dir()?.flatten() {
         let dir_entry = dir_entry.path();
         let theme = match dir_entry.file_stem().and_then(|v| v.to_str()) {
@@ -387,15 +421,20 @@ fn mmlu<P: AsRef<std::path::Path>>(
         if dir_entry.extension().as_ref().and_then(|v| v.to_str()) != Some("csv") {
             continue;
         }
+
+        // read csv file from directory
         println!("reading {dir_entry:?}");
         let dir_entry = std::fs::File::open(dir_entry)?;
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(false)
             .from_reader(dir_entry);
+
+        // create token for multiple choice A, B, C, D
         let token_a = tokenizer.token_to_id("A").unwrap();
         let token_b = tokenizer.token_to_id("B").unwrap();
         let token_c = tokenizer.token_to_id("C").unwrap();
         let token_d = tokenizer.token_to_id("D").unwrap();
+
         for row in reader.records() {
             let row = match row {
                 Err(_) => continue,
@@ -404,16 +443,22 @@ fn mmlu<P: AsRef<std::path::Path>>(
             if row.len() < 5 {
                 continue;
             }
+
+            // get queston, answer and generate prompt to train (create token)
             let question = row.get(0).unwrap();
             let answer_a = row.get(1).unwrap();
             let answer_b = row.get(2).unwrap();
             let answer_c = row.get(3).unwrap();
             let answer_d = row.get(4).unwrap();
             let answer = row.get(5).unwrap();
+
+            // generate string to use in tokenizer
             let prompt = format!(
                     "{} {theme}.\n{question}\nA. {answer_a}\nB. {answer_b}\nC. {answer_c}\nD. {answer_d}\nAnswer:\n",
                     "The following are multiple choice questions (with answers) about"
                 );
+
+            // cerate token from prompt
             let tokens = tokenizer.encode(prompt.as_str(), true).map_err(E::msg)?;
             let tokens = tokens.get_ids().to_vec();
             let input = Tensor::new(tokens, device)?.unsqueeze(0)?;
