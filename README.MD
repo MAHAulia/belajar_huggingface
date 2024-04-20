@@ -13,35 +13,108 @@ CANDLE (Continuous Active Learning for Digital Evidence) adalah sebuah inisiatif
 ### phi
 
 source -> [phi](https://github.com/mymyid/phi)
+
+### Documentation
+[Phi - Documentation](Phi-Doc.md)
+
 #### Run Code
 ```phi
 cargo run --release -- --model 2  --prompt "A skier slides down a frictionless slope of height 40m and length 80m. What's the skier speed at the bottom?"
 ```
 <img src="docs/phi.png" alt="phi result command" width="80%">
 
-### Documentation
-[Phi - Documentation](Phi-Doc.md)
-
+### Performance
+<table>
+  <tr>
+    <td>Waktu Generatsi Kalimat</td>
+    <td>:</td>
+    <td>???</td>
+  </tr>
+  <tr>
+    <td>Akurasi</td>
+    <td>:</td>
+    <td>???</td>
+  </tr>
+  <tr>
+    <td>Kebutuhan Kompuasi</td>
+    <td>:</td>
+    <td>???</td>
+  </tr>
+</table>
+<br/>
+<hr/>
+<br/>
 ### rwkv
 
 source -> [rwkv](https://github.com/mymyid/rwkv)
+
+### Documentation
+[Rwkv - Documentation](Rwkv-Doc.md)
+
 #### Run Code
 ```rwkv
 cargo run -- --prompt "the smallest prime is"
 ```
 <img src="docs/rwkv.png" alt="rwkv result command" width="80%">
 
-### Documentation
-[Rwkv - Documentation](Rwkv-Doc.md)
+### Performance
+<table>
+  <tr>
+    <td>Waktu Generatsi Kalimat</td>
+    <td>:</td>
+    <td>???</td>
+  </tr>
+  <tr>
+    <td>Akurasi</td>
+    <td>:</td>
+    <td>???</td>
+  </tr>
+  <tr>
+    <td>Kebutuhan Kompuasi</td>
+    <td>:</td>
+    <td>???</td>
+  </tr>
+</table>
+
+<br/>
+<hr/>
+<br/>
 
 ### mistral
 
 source -> [mistral](https://github.com/mymyid/mistral)
+
+### Documentation
+[Mistral - Documentation](Mistral-Doc.md)
+
 #### Run Code
 ```mistral
 RUST_BACKTRACE=1 cargo run --features cuda -- --prompt "Here is a sample quick sort implementation in rust " -n 400
 ```
 <img src="docs/mistral.png" alt="mistral result command" width="80%">
 
-### Documentation
-[Mistral - Documentation](Mistral-Doc.md)
+### Performance
+<table>
+  <tr>
+    <td>Waktu Generatsi Kalimat</td>
+    <td>:</td>
+    <td>???</td>
+  </tr>
+  <tr>
+    <td>Akurasi</td>
+    <td>:</td>
+    <td>???</td>
+  </tr>
+  <tr>
+    <td>Kebutuhan Kompuasi</td>
+    <td>:</td>
+    <td>???</td>
+  </tr>
+</table>
+
+<br/>
+<hr/>
+<br/>
+
+## Troubleshooting
+Proses troubleshooting selama menajalankan aplikasi memanfaatkan informasi saat compile error ketika aplikasi rust dijalankan.
